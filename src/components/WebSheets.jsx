@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Trash2, Sparkles, Key } from "lucide-react";
+import { 
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, 
+  Plus, Trash2, Sparkles, Key, Type, PaintBucket
+} from "lucide-react";
 import { evaluate } from 'mathjs';
 import OpenAI from "openai";
 import APIKeyInput from './APIKeyInput';
@@ -10,14 +13,17 @@ const WebSheets = () => {
   const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [selectedCell, setSelectedCell] = useState(null);
+  const [selectedRange, setSelectedRange] = useState(null);
   const [formulaBar, setFormulaBar] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [openai, setOpenai] = useState(null);
   const [showApiInput, setShowApiInput] = useState(true);
+  const [activeTool, setActiveTool] = useState(null);
+  const sheetRef = useRef(null);
 
   useEffect(() => {
-    const defaultHeaders = ['A', 'B', 'C', 'D', 'E'];
-    const defaultData = Array(10).fill().map(() => Array(5).fill(''));
+    const defaultHeaders = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const defaultData = Array(20).fill().map(() => Array(8).fill(''));
     setHeaders(defaultHeaders);
     setData(defaultData);
   }, []);
@@ -113,6 +119,49 @@ const WebSheets = () => {
     }
   };
 
+  const handleCellClick = (rowIndex, colIndex, event) => {
+    if (event.shiftKey && selectedCell) {
+      setSelectedRange({
+        startRow: Math.min(selectedCell.row, rowIndex),
+        endRow: Math.max(selectedCell.row, rowIndex),
+        startCol: Math.min(selectedCell.col, colIndex),
+        endCol: Math.max(selectedCell.col, colIndex)
+      });
+    } else {
+      setSelectedCell({ row: rowIndex, col: colIndex });
+      setSelectedRange(null);
+      setFormulaBar(data[rowIndex][colIndex]);
+    }
+  };
+
+  const isCellSelected = (rowIndex, colIndex) => {
+    if (selectedRange) {
+      return rowIndex >= selectedRange.startRow && rowIndex <= selectedRange.endRow &&
+             colIndex >= selectedRange.startCol && colIndex <= selectedRange.endCol;
+    }
+    return selectedCell && selectedCell.row === rowIndex && selectedCell.col === colIndex;
+  };
+
+  const applyActiveTool = (rowIndex, colIndex) => {
+    if (!activeTool) return;
+
+    const newData = [...data];
+    let currentValue = newData[rowIndex][colIndex];
+
+    switch (activeTool) {
+      case 'textColor':
+        currentValue = `textColor(red,${currentValue})`;
+        break;
+      case 'bgColor':
+        currentValue = `bgColor(yellow,${currentValue})`;
+        break;
+      // Add more cases for other tools
+    }
+
+    newData[rowIndex][colIndex] = currentValue;
+    setData(newData);
+  };
+
   return (
     <div className="container mx-auto p-4 bg-gray-100 min-h-screen">
       <h1 className="text-2xl font-bold mb-4 text-gray-800">WebSheets</h1>
@@ -123,32 +172,35 @@ const WebSheets = () => {
           <Key className="mr-2 h-4 w-4" /> Change API Key
         </Button>
       )}
-      <div className="mb-4 flex space-x-2 bg-gray-200 p-2 rounded">
-        <Button onClick={() => formatCell('bold')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Bold className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('italic')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Italic className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('underline')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Underline className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('left')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignLeft className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('center')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignCenter className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('right')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignRight className="h-4 w-4" /></Button>
-        <Button onClick={generateContent} variant="ghost" size="sm" className="bg-gray-800 text-white" disabled={!openai}>
+      <div className="mb-4 flex space-x-2 bg-white p-2 rounded shadow">
+        <Button onClick={() => formatCell('bold')} variant="ghost" size="sm"><Bold className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('italic')} variant="ghost" size="sm"><Italic className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('underline')} variant="ghost" size="sm"><Underline className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('left')} variant="ghost" size="sm"><AlignLeft className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('center')} variant="ghost" size="sm"><AlignCenter className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('right')} variant="ghost" size="sm"><AlignRight className="h-4 w-4" /></Button>
+        <Button onClick={() => setActiveTool('textColor')} variant="ghost" size="sm"><Type className="h-4 w-4" /></Button>
+        <Button onClick={() => setActiveTool('bgColor')} variant="ghost" size="sm"><PaintBucket className="h-4 w-4" /></Button>
+        <Button onClick={generateContent} variant="ghost" size="sm" disabled={!openai}>
           <Sparkles className="h-4 w-4 mr-2" /> Generate Content
         </Button>
       </div>
-      <div className="mb-4">
+      <div className="mb-4 flex items-center bg-white rounded shadow">
+        <div className="p-2 font-bold text-gray-600">fx</div>
         <Input
           value={formulaBar}
           onChange={handleFormulaBarChange}
           placeholder="Enter formula or value"
-          className="w-full border-2 border-gray-300"
+          className="flex-grow border-none focus:ring-0"
         />
       </div>
-      <div className="overflow-x-auto bg-white rounded shadow">
-        <table className="w-full">
+      <div className="overflow-x-auto bg-white rounded shadow" ref={sheetRef}>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="border border-gray-300 p-2"></th>
+              <th className="sticky left-0 top-0 z-10 bg-gray-100 border border-gray-300 p-2"></th>
               {headers.map((header, index) => (
-                <th key={index} className="border border-gray-300 p-2 relative">
+                <th key={index} className="sticky top-0 z-10 bg-gray-100 border border-gray-300 p-2 relative min-w-[100px]">
                   {header}
                   <Button
                     variant="ghost"
@@ -164,14 +216,19 @@ const WebSheets = () => {
           </thead>
           <tbody>
             {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                <td className="border border-gray-300 p-2 font-medium text-gray-500">{rowIndex + 1}</td>
+              <tr key={rowIndex}>
+                <td className="sticky left-0 bg-gray-100 border border-gray-300 p-2 font-medium text-gray-500">{rowIndex + 1}</td>
                 {row.map((cell, colIndex) => (
-                  <td key={colIndex} className="border border-gray-300 p-0">
+                  <td 
+                    key={colIndex} 
+                    className={`border border-gray-300 p-0 relative ${isCellSelected(rowIndex, colIndex) ? 'bg-blue-100' : ''}`}
+                    onClick={(e) => handleCellClick(rowIndex, colIndex, e)}
+                    onMouseEnter={() => applyActiveTool(rowIndex, colIndex)}
+                  >
+                    <div className="absolute inset-0 pointer-events-none" dangerouslySetInnerHTML={{ __html: getCellValue(rowIndex, colIndex) }} />
                     <Input
                       value={cell}
                       onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                      onFocus={() => setSelectedCell({ row: rowIndex, col: colIndex })}
                       className="h-full w-full border-none bg-transparent"
                     />
                   </td>
