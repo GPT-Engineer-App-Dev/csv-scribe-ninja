@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Trash2 } from "lucide-react";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Trash2, Sparkles, Key } from "lucide-react";
 import { evaluate } from 'mathjs';
+import { Configuration, OpenAIApi } from "openai";
+import APIKeyInput from './APIKeyInput';
 
 const WebSheets = () => {
   const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [selectedCell, setSelectedCell] = useState(null);
   const [formulaBar, setFormulaBar] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [openai, setOpenai] = useState(null);
+  const [showApiInput, setShowApiInput] = useState(true);
 
   useEffect(() => {
     const defaultHeaders = ['A', 'B', 'C', 'D', 'E'];
@@ -16,6 +21,13 @@ const WebSheets = () => {
     setHeaders(defaultHeaders);
     setData(defaultData);
   }, []);
+
+  const handleApiKeySubmit = (key) => {
+    setApiKey(key);
+    const configuration = new Configuration({ apiKey: key });
+    setOpenai(new OpenAIApi(configuration));
+    setShowApiInput(false);
+  };
 
   const handleCellChange = (rowIndex, colIndex, value) => {
     const newData = [...data];
@@ -79,9 +91,34 @@ const WebSheets = () => {
     }
   };
 
+  const generateContent = async () => {
+    if (!openai || !selectedCell) return;
+
+    try {
+      const prompt = `Generate a short, interesting fact or piece of data for a spreadsheet cell.`;
+      const response = await openai.createCompletion({
+        model: "text-davinci-002",
+        prompt: prompt,
+        max_tokens: 50,
+      });
+
+      const generatedContent = response.data.choices[0].text.trim();
+      handleCellChange(selectedCell.row, selectedCell.col, generatedContent);
+    } catch (error) {
+      console.error("Error generating content:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 bg-gray-100 min-h-screen">
       <h1 className="text-2xl font-bold mb-4 text-gray-800">WebSheets</h1>
+      {showApiInput ? (
+        <APIKeyInput onApiKeySubmit={handleApiKeySubmit} />
+      ) : (
+        <Button onClick={() => setShowApiInput(true)} className="mb-4">
+          <Key className="mr-2 h-4 w-4" /> Change API Key
+        </Button>
+      )}
       <div className="mb-4 flex space-x-2 bg-gray-200 p-2 rounded">
         <Button onClick={() => formatCell('bold')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Bold className="h-4 w-4" /></Button>
         <Button onClick={() => formatCell('italic')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Italic className="h-4 w-4" /></Button>
@@ -89,6 +126,9 @@ const WebSheets = () => {
         <Button onClick={() => formatCell('left')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignLeft className="h-4 w-4" /></Button>
         <Button onClick={() => formatCell('center')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignCenter className="h-4 w-4" /></Button>
         <Button onClick={() => formatCell('right')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignRight className="h-4 w-4" /></Button>
+        <Button onClick={generateContent} variant="ghost" size="sm" className="bg-gray-800 text-white" disabled={!openai}>
+          <Sparkles className="h-4 w-4 mr-2" /> Generate Content
+        </Button>
       </div>
       <div className="mb-4">
         <Input
