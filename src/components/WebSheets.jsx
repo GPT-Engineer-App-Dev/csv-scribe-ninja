@@ -97,13 +97,16 @@ const WebSheets = () => {
     if (!openai || !selectedCell) return;
 
     try {
-      const response = await openai.completions.create({
-        model: "text-davinci-002",
-        prompt: "Generate a short, interesting fact or piece of data for a spreadsheet cell.",
+      const response = await openai.chat.completions.create({
+        model: "gpt-4-0613",
+        messages: [
+          { role: "system", content: "You are a helpful assistant that generates interesting content for spreadsheet cells." },
+          { role: "user", content: "Generate a short, interesting fact or piece of data for a spreadsheet cell." }
+        ],
         max_tokens: 50,
       });
 
-      const generatedContent = response.choices[0].text.trim();
+      const generatedContent = response.choices[0].message.content.trim();
       handleCellChange(selectedCell.row, selectedCell.col, generatedContent);
     } catch (error) {
       console.error("Error generating content:", error);
