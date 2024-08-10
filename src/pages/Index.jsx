@@ -1,10 +1,10 @@
 import React from 'react';
-import CSVEditor from '../components/CSVEditor';
+import WebSheets from '../components/WebSheets';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-gray-100">
-      <CSVEditor />
+      <WebSheets />
     </div>
   );
 };
