@@ -274,16 +274,11 @@ const WebSheets = () => {
                     onClick={(e) => handleCellClick(rowIndex, colIndex, e)}
                     onMouseEnter={() => applyActiveTool(rowIndex, colIndex)}
                   >
-                    <div className="absolute inset-0 pointer-events-none">
-                      {getCellValue(rowIndex, colIndex).then(value => {
-                        // Update the cell content with the evaluated value
-                        const cellElement = document.getElementById(`cell-${rowIndex}-${colIndex}`);
-                        if (cellElement) {
-                          cellElement.textContent = value;
-                        }
-                      })}
-                    </div>
-                    <div id={`cell-${rowIndex}-${colIndex}`} className="h-full w-full p-1"></div>
+                    <CellContent
+                      rowIndex={rowIndex}
+                      colIndex={colIndex}
+                      getCellValue={getCellValue}
+                    />
                     <Input
                       value={cell}
                       onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
@@ -312,5 +307,15 @@ const WebSheets = () => {
     </div>
   );
 };
+
+const CellContent = React.memo(({ rowIndex, colIndex, getCellValue }) => {
+  const [value, setValue] = useState('');
+
+  useEffect(() => {
+    getCellValue(rowIndex, colIndex).then(setValue);
+  }, [rowIndex, colIndex, getCellValue]);
+
+  return <div className="h-full w-full p-1">{value}</div>;
+});
 
 export default WebSheets;
