@@ -24,7 +24,10 @@ const WebSheets = () => {
 
   const handleApiKeySubmit = (key) => {
     setApiKey(key);
-    setOpenai(new OpenAI({ apiKey: key }));
+    setOpenai(new OpenAI({ 
+      apiKey: key, 
+      dangerouslyAllowBrowser: true // Note: This is not recommended for production use
+    }));
     setShowApiInput(false);
   };
 
