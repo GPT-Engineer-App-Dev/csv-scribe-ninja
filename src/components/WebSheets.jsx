@@ -5,9 +5,11 @@ import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, 
   Plus, Trash2, Sparkles, Key, Type, PaintBucket
 } from "lucide-react";
-import { evaluate } from 'mathjs';
+import { create, all } from 'mathjs';
 import OpenAI from "openai";
 import APIKeyInput from './APIKeyInput';
+
+const math = create(all);
 
 const WebSheets = () => {
   const [data, setData] = useState([]);
@@ -74,20 +76,67 @@ const WebSheets = () => {
     }
   };
 
-  const evaluateFormula = (formula) => {
-    if (formula.startsWith('=')) {
-      try {
-        return evaluate(formula.slice(1));
-      } catch (error) {
-        return '#ERROR!';
-      }
-    }
-    return formula;
+  const getCellReference = (rowIndex, colIndex) => {
+    return `${headers[colIndex]}${rowIndex + 1}`;
   };
 
-  const getCellValue = (rowIndex, colIndex) => {
+  const getCellByReference = (ref) => {
+    const colIndex = ref.charCodeAt(0) - 65;
+    const rowIndex = parseInt(ref.slice(1)) - 1;
+    return data[rowIndex][colIndex];
+  };
+
+  const llmFunction = async (prompt, cellValue) => {
+    if (!openai) return '#ERROR: No API Key';
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-2024-08-06",
+        messages: [
+          { role: "system", content: "You are a helpful assistant that generates content based on prompts and cell values in a spreadsheet." },
+          { role: "user", content: `${prompt}\n\nCell Value: ${cellValue}` }
+        ],
+        max_tokens: 100,
+      });
+
+      return response.choices[0].message.content.trim();
+    } catch (error) {
+      console.error("Error in LLM function:", error);
+      return '#ERROR: LLM Failed';
+    }
+  };
+
+  const evaluateFormula = async (formula, rowIndex, colIndex) => {
+    if (!formula.startsWith('=')) return formula;
+
+    try {
+      // Replace cell references with their values
+      const formulaWithValues = formula.slice(1).replace(/[A-Z]\d+/g, (match) => {
+        return getCellByReference(match);
+      });
+
+      // Check for LLM function
+      if (formulaWithValues.startsWith('LLM(')) {
+        const args = formulaWithValues.slice(4, -1).split(',').map(arg => arg.trim());
+        if (args.length !== 2) return '#ERROR: Invalid LLM arguments';
+        return await llmFunction(args[0], args[1]);
+      }
+
+      // Evaluate other formulas
+      const scope = {
+        LLM: llmFunction,
+        CELL: getCellReference(rowIndex, colIndex)
+      };
+      return math.evaluate(formulaWithValues, scope);
+    } catch (error) {
+      console.error("Formula evaluation error:", error);
+      return '#ERROR';
+    }
+  };
+
+  const getCellValue = async (rowIndex, colIndex) => {
     const cellValue = data[rowIndex][colIndex];
-    return evaluateFormula(cellValue);
+    return await evaluateFormula(cellValue, rowIndex, colIndex);
   };
 
   const formatCell = (format) => {
@@ -225,11 +274,20 @@ const WebSheets = () => {
                     onClick={(e) => handleCellClick(rowIndex, colIndex, e)}
                     onMouseEnter={() => applyActiveTool(rowIndex, colIndex)}
                   >
-                    <div className="absolute inset-0 pointer-events-none" dangerouslySetInnerHTML={{ __html: getCellValue(rowIndex, colIndex) }} />
+                    <div className="absolute inset-0 pointer-events-none">
+                      {getCellValue(rowIndex, colIndex).then(value => {
+                        // Update the cell content with the evaluated value
+                        const cellElement = document.getElementById(`cell-${rowIndex}-${colIndex}`);
+                        if (cellElement) {
+                          cellElement.textContent = value;
+                        }
+                      })}
+                    </div>
+                    <div id={`cell-${rowIndex}-${colIndex}`} className="h-full w-full p-1"></div>
                     <Input
                       value={cell}
                       onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                      className="h-full w-full border-none bg-transparent"
+                      className="h-full w-full border-none bg-transparent absolute inset-0 opacity-0"
                     />
                   </td>
                 ))}
