@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Trash2, Sparkles, Key } from "lucide-react";
 import { evaluate } from 'mathjs';
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import APIKeyInput from './APIKeyInput';
 
 const WebSheets = () => {
@@ -24,8 +24,7 @@ const WebSheets = () => {
 
   const handleApiKeySubmit = (key) => {
     setApiKey(key);
-    const configuration = new Configuration({ apiKey: key });
-    setOpenai(new OpenAIApi(configuration));
+    setOpenai(new OpenAI({ apiKey: key }));
     setShowApiInput(false);
   };
 
@@ -95,14 +94,13 @@ const WebSheets = () => {
     if (!openai || !selectedCell) return;
 
     try {
-      const prompt = `Generate a short, interesting fact or piece of data for a spreadsheet cell.`;
-      const response = await openai.createCompletion({
+      const response = await openai.completions.create({
         model: "text-davinci-002",
-        prompt: prompt,
+        prompt: "Generate a short, interesting fact or piece of data for a spreadsheet cell.",
         max_tokens: 50,
       });
 
-      const generatedContent = response.data.choices[0].text.trim();
+      const generatedContent = response.choices[0].text.trim();
       handleCellChange(selectedCell.row, selectedCell.col, generatedContent);
     } catch (error) {
       console.error("Error generating content:", error);
