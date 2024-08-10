@@ -98,7 +98,7 @@ const WebSheets = () => {
 
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-0613",
+        model: "gpt-4o-2024-08-06",
         messages: [
           { role: "system", content: "You are a helpful assistant that generates interesting content for spreadsheet cells." },
           { role: "user", content: "Generate a short, interesting fact or piece of data for a spreadsheet cell." }
