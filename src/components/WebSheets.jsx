@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Download, Plus, Trash2, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Plus, Trash2 } from "lucide-react";
 import { evaluate } from 'mathjs';
 
 const WebSheets = () => {
@@ -12,7 +11,6 @@ const WebSheets = () => {
   const [formulaBar, setFormulaBar] = useState('');
 
   useEffect(() => {
-    // Initialize with some default data
     const defaultHeaders = ['A', 'B', 'C', 'D', 'E'];
     const defaultData = Array(10).fill().map(() => Array(5).fill(''));
     setHeaders(defaultHeaders);
@@ -82,73 +80,73 @@ const WebSheets = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">WebSheets</h1>
-      <div className="mb-4 flex space-x-2">
-        <Button onClick={() => formatCell('bold')}><Bold className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('italic')}><Italic className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('underline')}><Underline className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('left')}><AlignLeft className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('center')}><AlignCenter className="h-4 w-4" /></Button>
-        <Button onClick={() => formatCell('right')}><AlignRight className="h-4 w-4" /></Button>
+    <div className="container mx-auto p-4 bg-gray-100 min-h-screen">
+      <h1 className="text-2xl font-bold mb-4 text-gray-800">WebSheets</h1>
+      <div className="mb-4 flex space-x-2 bg-gray-200 p-2 rounded">
+        <Button onClick={() => formatCell('bold')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Bold className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('italic')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Italic className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('underline')} variant="ghost" size="sm" className="bg-gray-800 text-white"><Underline className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('left')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignLeft className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('center')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignCenter className="h-4 w-4" /></Button>
+        <Button onClick={() => formatCell('right')} variant="ghost" size="sm" className="bg-gray-800 text-white"><AlignRight className="h-4 w-4" /></Button>
       </div>
       <div className="mb-4">
         <Input
           value={formulaBar}
           onChange={handleFormulaBarChange}
           placeholder="Enter formula or value"
-          className="w-full"
+          className="w-full border-2 border-gray-300"
         />
       </div>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead></TableHead>
+      <div className="overflow-x-auto bg-white rounded shadow">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="border border-gray-300 p-2"></th>
               {headers.map((header, index) => (
-                <TableHead key={index} className="relative">
+                <th key={index} className="border border-gray-300 p-2 relative">
                   {header}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-0 right-0"
+                    className="absolute top-0 right-0 text-gray-500 hover:text-gray-700"
                     onClick={() => deleteColumn(index)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
-                </TableHead>
+                </th>
               ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+            </tr>
+          </thead>
+          <tbody>
             {data.map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
-                <TableCell className="font-medium">{rowIndex + 1}</TableCell>
+              <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                <td className="border border-gray-300 p-2 font-medium text-gray-500">{rowIndex + 1}</td>
                 {row.map((cell, colIndex) => (
-                  <TableCell key={colIndex} className="p-0">
+                  <td key={colIndex} className="border border-gray-300 p-0">
                     <Input
                       value={cell}
                       onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                       onFocus={() => setSelectedCell({ row: rowIndex, col: colIndex })}
-                      className="h-full w-full border-none"
+                      className="h-full w-full border-none bg-transparent"
                     />
-                  </TableCell>
+                  </td>
                 ))}
-                <TableCell>
-                  <Button variant="ghost" size="sm" onClick={() => deleteRow(rowIndex)}>
+                <td className="border border-gray-300 p-2">
+                  <Button variant="ghost" size="sm" onClick={() => deleteRow(rowIndex)} className="text-gray-500 hover:text-gray-700">
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
       <div className="mt-4 flex justify-between">
-        <Button onClick={addRow}>
+        <Button onClick={addRow} className="bg-gray-800 text-white">
           <Plus className="mr-2 h-4 w-4" /> Add Row
         </Button>
-        <Button onClick={addColumn}>
+        <Button onClick={addColumn} className="bg-gray-800 text-white">
           <Plus className="mr-2 h-4 w-4" /> Add Column
         </Button>
       </div>
